@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WebAR Задание 2 - Image Tracking (MindAR)</title>
+
+    <!-- A-Frame 1.4.2 и MindAR 1.2.5 (проверенная стабильная связка для iOS Safari) -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+    <style>
+        html, body {
+            position: relative;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            -webkit-overflow-scrolling: touch;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* Полноэкранная сцена A-Frame */
+        a-scene {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        /* Информационная подсказка для пользователя на смартфоне */
+        #ar-overlay {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.65);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body>
+    <div id="ar-overlay">Наведите камеру на маркер</div>
+
+    <!-- 
+      Параметры a-scene:
+      - mindar-image: путь к targets.mind и автозапуск
+      - embedded: предотвращает смещение канваса на iOS при скрытии/показе панели Safari
+      - renderer: правильная гамма sRGB и физически корректное освещение
+      - vr-mode-ui и device-orientation-permission-ui: отключение лишних диалогов VR
+    -->
+    <a-scene 
+        mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; uiError: yes;" 
+        color-space="sRGB" 
+        embedded
+        renderer="colorManagement: true, physicallyCorrectLights: true;" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+            <!-- Предзагрузка 3D-модели картины Wall.glb -->
+            <a-asset-item id="pictureModel" src="./Wall.glb"></a-asset-item>
+        </a-assets>
+
+        <!-- Камера без лишнего управления (look-controls выключен для AR-трекинга) -->
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <!-- Трекер маркера (targetIndex: 0 соответствует первому изображению в targets.mind) -->
+        <a-entity mindar-image-target="targetIndex: 0" id="targetEntity">
+            
+            <!-- Освещение сцены: мягкий рассеянный свет + направленный для теней и объема -->
+            <a-light type="ambient" color="#FFFFFF" intensity="1.2"></a-light>
+            <a-light type="directional" position="1 2 2" intensity="1.5" cast-shadow="false"></a-light>
+            <a-light type="directional" position="-1 -1 2" intensity="0.6"></a-light>
+            
+            <!-- 
+              Отображаемая 3D-модель картины:
+              Модель Wall.glb масштабирована под пропорции маркера.
+              Если необходимо скорректировать размер или положение:
+              - scale: подгонка габаритов под единичный размер маркера MindAR
+              - position: центрирование модели относительно плоскости маркера
+              - rotation: фронтальное расположение к зрителю
+            -->
+            <a-gltf-model 
+                src="#pictureModel" 
+                position="0 -0.5 0.05" 
+                rotation="0 0 0" 
+                scale="0.08 0.08 0.08">
+            </a-gltf-model>
+            
+        </a-entity>
+    </a-scene>
+
+    <script>
+        // Дополнительный скрипт для скрытия подсказки, когда маркер найден
+        const targetEntity = document.querySelector('#targetEntity');
+        const overlay = document.querySelector('#ar-overlay');
+
+        if (targetEntity && overlay) {
+            targetEntity.addEventListener('targetFound', () => {
+                overlay.textContent = 'Маркер найден!';
+                overlay.style.background = 'rgba(40, 167, 69, 0.75)';
+            });
+
+            targetEntity.addEventListener('targetLost', () => {
+                overlay.textContent = 'Наведите камеру на маркер';
+                overlay.style.background = 'rgba(0, 0, 0, 0.65)';
+            });
+        }
+    </script>
+</body>
+</html>
